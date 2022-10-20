@@ -1,10 +1,9 @@
 import React from "react";
-import { flushSync } from "react-dom";
 import "../App.css";
 
 //Global Scoope Var
 let boxes = [["", "", ""], ["", "", ""], ["", "", ""]];
-
+let easy = 0;
 let board = document.querySelector(".Board");
 
 
@@ -37,7 +36,21 @@ class Move {
   }
 }
 
+function random() {
+  let col = Math.floor(Math.random() * 3);
+  let row = Math.floor(Math.random() * 3);
 
+  while (boxes[row][col] != "") {
+    col = Math.floor(Math.random() * 3);
+    row = Math.floor(Math.random() * 3);
+  }
+
+
+  let rand = new Move();
+  rand.row = row;
+  rand.col = col;
+  return rand;
+}
 
 //React Function
 export default function Board(props) {
@@ -243,6 +256,7 @@ export default function Board(props) {
     props.setMode("none");
     boxes = [["", "", ""], ["", "", ""], ["", "", ""]];
     props.setTurn("O");
+    easy = 0;
 
     let boxesEle = document.querySelectorAll(".box");
 
@@ -317,8 +331,6 @@ export default function Board(props) {
   //----------------------------------------------
   //A simple Function to handle Clicks
   function clickHandle(r, c) {
-
-    console.log(props.mode);
     //Allow to click only if The box is Empty and Human turn
     if (props.turn == "O") {
       if (boxes[r][c] == "") {
@@ -330,39 +342,32 @@ export default function Board(props) {
         //Dispalying the Move that has been played
         displayBoard();
 
-        //Computers turn
-        //Find the Best Move and Play it 
-        let compMove = findBestMove(boxes);
 
-        //A 0.5s Delay to make it look like Computer is Thinking
-        setTimeout(() => {
-          if (compMove.row != -1 && compMove.col != -1) { boxes[compMove.row][compMove.col] = "X"; }
-          displayBoard();
+        let winPromise = new Promise((resolve, reject) => {
 
-          //Turn Changer
-          props.setTurn("O");
-
-          //Checking Win over here
           let win = winChecker(boxes);
-          if (win == player || win == opponent) {
-            //Another Set TimeOut for delay in win Display
-            setTimeout(() => {
-              alert(`${win} Player Won hahahaha!`);
-              reset();
-            }, 1000);
+          setTimeout(() => {
+            if (win == player || win == opponent) {
+              reject(win);
+            }
 
+            else {
+              resolve();
+            }
+          }, 200)
 
-          }
+        })
 
-          //Draw Condition
-          else if (!isMovesLeft(boxes)) {
-            //Draw delay
-            setTimeout(() => {
-              alert(`Ohhh Looks like its a draw !`);
-              reset();
-            }, 500);
-          }
-        }, 500)
+        winPromise.then(() => {
+          compTurn();
+        })
+          //For Reject or If game is over or won by someone and Reseting the game
+          .catch((win) => {
+
+            alert(`${win} Player Won hahahaha!`);
+            reset();
+          });
+
 
 
 
@@ -372,9 +377,56 @@ export default function Board(props) {
 
     }
 
+    easy++;
   }
 
+  function compTurn() {
+    //Computers turn
 
+    //random Mode for easy 
+    let compMove;
+    if (easy == 2 && props.mode == Easy) {
+      compMove = random();
+    }
+
+    //Find the Best Move and Play it 
+    else { compMove = findBestMove(boxes); }
+
+    //A 0.5s Delay to make it look like Computer is Thinking
+    setTimeout(() => {
+
+      if (compMove.row != -1 && compMove.col != -1) { boxes[compMove.row][compMove.col] = "X"; };
+      displayBoard();
+
+
+
+      //Checking Win over here
+      let win = winChecker(boxes);
+      if (win == player || win == opponent) {
+        //Another Set TimeOut for delay in win Display
+        setTimeout(() => {
+          alert(`${win} Player Won hahahaha!`);
+          reset();
+        }, 500);
+
+
+
+      }
+
+      //Draw Condition
+      else if (!isMovesLeft(boxes)) {
+        //Draw delay
+        setTimeout(() => {
+          alert(`Ohhh Looks like its a draw !`);
+          reset();
+        }, 500);
+      }
+
+      //Turn Changer
+      props.setTurn("O");
+    }, 500)
+
+  }
   //alert(findBestMove());
 
   return (
